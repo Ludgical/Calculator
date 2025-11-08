@@ -50,33 +50,9 @@ class Calculator(QWidget):
         self.style_sheet()
 
     def style_sheet(self):
-        self.setStyleSheet("""
-            Calculator{
-                background-color: #ddd;
-            }
-            QPushButton{
-                background-color: #4444ff;
-                color: white;
-                margin: 13px;
-                cursor: hand;
-                padding-top: 25px; padding-bottom: 25px;
-                padding-right: 37px; padding-left: 37px;
-                font-size: 40px;
-                font-family: consolas;
-                border-radius: 48px;
-            }
-            QLabel{
-                font-size: 80px;
-                font-family: consolas;
-                color: #111;
-            }
-            QPushButton:pressed{
-                margin: 16px;
-                padding: 0px;
-                border-radius: 45px;
-                font-size: 38px;
-            }
-        """)
+        with open("style.css") as file:
+            css = file.read()
+        self.setStyleSheet(css)
 
         # Non number buttons
         for x, y in self.non_num_button_locs:
