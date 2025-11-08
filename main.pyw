@@ -12,6 +12,9 @@ class Calculator(QWidget):
         self.current_num_has_dot = False
         self.need_to_write_num = True
         self.label = QLabel()
+        self.label.setObjectName('label')
+        self.error_label = QLabel()
+        self.error_label.setObjectName('error_label')
         self.buttons = (
          (QPushButton("7"),QPushButton("8"),QPushButton("9"),QPushButton("/"),QPushButton("√")),
          (QPushButton("4"),QPushButton("5"),QPushButton("6"),QPushButton("*"),QPushButton("^")),
@@ -39,13 +42,14 @@ class Calculator(QWidget):
                 button.clicked.connect(self.on_button_press)
 
         layout.addWidget(self.label)
+        layout.addWidget(self.error_label)
         layout.addLayout(grid)
 
         self.setLayout(layout)
 
     def init_ui(self):
-        self.label.setAlignment(Qt.AlignVCenter)
         self.label.setAlignment(Qt.AlignRight)
+        self.error_label.setAlignment(Qt.AlignRight)
 
         self.style_sheet()
 
@@ -188,11 +192,16 @@ class Calculator(QWidget):
         self.label.setText(self.label.text()[:-1])
         if removed_char == ".":
             self.current_num_has_dot = False
-        if removed_char.isdigit() and self.label.text()[-1] in self.operators:
+        try:
+            if removed_char.isdigit() and self.label.text()[-1] in self.operators:
+                self.need_to_write_num = True
+        except IndexError:
+            # Nothing in the label → need to write number
             self.need_to_write_num = True
 
     def calc(self, num1, num2, operator) -> str:
         try:
+            result = None
             match operator:
                 case "+":
                     result = num1 + num2
@@ -203,22 +212,22 @@ class Calculator(QWidget):
                 case "/":
                     result = num1 / num2
                 case "^":
-                    result = num1 **num2
+                    result = num1 ** num2
                 case "√":
                     result = math.sqrt(num1)
                 case _:
                     result = num1
+
         except ZeroDivisionError:
-            print("Dividing by 0")
+            self.error_label.setText("Dividing by 0")
             self.last_operation_equals = True
             self.need_to_write_num = True
             return "Error"
         except ValueError:
-            print("Root of negative number")
+            self.error_label.setText("Root of negative number")
             self.last_operation_equals = True
             self.need_to_write_num = True
             return "Error"
-
 
         if result.is_integer():
             return str(int(result))

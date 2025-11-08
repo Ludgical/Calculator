@@ -12,10 +12,15 @@ QPushButton{
     font-family: consolas;
     border-radius: 48px;
 }
-QLabel{
+#label{
     font-size: 80px;
     font-family: consolas;
     color: #111;
+}
+#error_label{
+    font-size: 20px;
+    font-family: times new roman;
+    color: #f01010;
 }
 QPushButton:pressed{
     margin: 16px;
