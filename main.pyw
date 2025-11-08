@@ -93,12 +93,10 @@ class Calculator(QWidget):
 
     @staticmethod
     def get_button_type(button_text: str) -> str: # "num", ".", "op", "=", "<", "C"
-        if button_text.isdigit(): return "num"
-        if button_text == ".":    return "."
-        if button_text == "=":    return "="
-        if button_text == "C":    return "C"
-        if button_text == "<":    return "<"
-        if button_text == "√":    return "√"
+        if button_text.isdigit():
+            return "num"
+        elif button_text in ".=C<√":
+            return button_text
         return "op"
 
     def on_button_press(self):
