@@ -82,24 +82,25 @@ class Calculator(QWidget):
     def on_button_press(self):
         if self.label.text() == "Error":
             self.on_press_c()
+
         button_text = self.sender().text()
         button_type = self.get_button_type(button_text)
-        if button_type == "num":
-            self.on_press_num(button_text)
-        elif button_type == ".":
-            self.on_press_dot()
-        elif button_type == "op":
-            self.on_press_op(button_text)
-        elif button_type == "√":
-            self.on_press_sqrt()
-            return
-        elif button_type == "=":
-            self.on_press_eq()
-            return
-        elif button_type == "<":
-            self.on_press_erase()
-        elif button_type == "C":
-            self.on_press_c()
+
+        match button_type:
+            case "num":
+                self.on_press_num(button_text)
+            case ".":
+                self.on_press_dot()
+            case "op":
+                self.on_press_op(button_text)
+            case "√":
+                self.on_press_sqrt()
+            case "=":
+                self.on_press_eq()
+            case "<":
+                self.on_press_erase()
+            case "C":
+                self.on_press_c()
 
     def on_press_num(self, button_text):
         if self.last_operation_equals:
@@ -118,16 +119,16 @@ class Calculator(QWidget):
 
     def on_press_op(self, button_text):
         label_text = self.label.text()
-        # Return if not allowed to write operator {
+        # Return if not allowed to write operator
         if self.need_to_write_num:
             cond1 = label_text == ""
             try:
                 cond2 = label_text[-2].isdigit() or label_text[-2] == "."
             except IndexError:
                 cond2 = False
-            if not (button_text == "-" and (cond1 or cond2)):
+            # ???
+            if button_text != "-" or (not cond1 and not cond2):
                 return
-        # }
 
         # Don't run equals if a negative sign is being written {
         cond1 = label_text == "" and button_text == "-"
@@ -137,8 +138,8 @@ class Calculator(QWidget):
             cond2 = False
         if not cond1 and not cond2:
             self.on_press_eq()
-        # }
-
+        if self.label.text() == "Error":
+            return
         self.label.setText(self.label.text() + button_text)
         self.need_to_write_num = True
         self.writing_num1 = False
@@ -149,6 +150,8 @@ class Calculator(QWidget):
         if self.need_to_write_num:
             return
         self.on_press_eq()
+        if self.label.text() == "Error":
+            return
         self.label.setText(self.label.text() + "√")
         self.on_press_eq()
         self.writing_num1 = False
@@ -182,21 +185,23 @@ class Calculator(QWidget):
 
     def on_press_c(self):
         self.label.setText("")
+        self.error_label.setText("")
         self.writing_num1 = True
         self.last_operation_equals = False
         self.current_num_has_dot = False
         self.need_to_write_num = True
 
     def on_press_erase(self):
-        removed_char = self.label.text()[-1]
-        self.label.setText(self.label.text()[:-1])
+        text = self.label.text()
+        length = len(text)
+        if length == 0:
+            return
+
+        removed_char = text[-1]
+        self.label.setText(text[:-1])
         if removed_char == ".":
             self.current_num_has_dot = False
-        try:
-            if removed_char.isdigit() and self.label.text()[-1] in self.operators:
-                self.need_to_write_num = True
-        except IndexError:
-            # Nothing in the label → need to write number
+        if length == 1 or (removed_char.isdigit() and self.label.text()[-1] in self.operators):
             self.need_to_write_num = True
 
     def calc(self, num1, num2, operator) -> str:
