@@ -182,6 +182,7 @@ class Calculator(QWidget):
 
     def on_press_c(self):
         self.label.setText("")
+        self.error_label.setText("")
         self.writing_num1 = True
         self.last_operation_equals = False
         self.current_num_has_dot = False
