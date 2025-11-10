@@ -7,22 +7,24 @@ from PyQt5.QtCore import Qt
 class Calculator(QWidget):
     def __init__(self):
         super().__init__()
-        self.writing_num1 = True
-        self.last_operation_equals = False
         self.current_num_has_dot = False
         self.need_to_write_num = True
+        self.need_to_write_op = False
+        self.memory = 0
         self.label = QLabel()
         self.label.setObjectName('label')
         self.error_label = QLabel()
         self.error_label.setObjectName('error_label')
         self.buttons = (
-         (QPushButton("7"),QPushButton("8"),QPushButton("9"),QPushButton("/"),QPushButton("√")),
-         (QPushButton("4"),QPushButton("5"),QPushButton("6"),QPushButton("*"),QPushButton("^")),
-         (QPushButton("1"),QPushButton("2"),QPushButton("3"),QPushButton("-"),QPushButton("<")),
-         (QPushButton("0"),QPushButton("."),QPushButton("="),QPushButton("+"),QPushButton("C"))
+         (QPushButton("7"),QPushButton("8"),QPushButton("9"),QPushButton("/"),QPushButton("√"),QPushButton("M+")),
+         (QPushButton("4"),QPushButton("5"),QPushButton("6"),QPushButton("*"),QPushButton("^"),QPushButton("M-")),
+         (QPushButton("1"),QPushButton("2"),QPushButton("3"),QPushButton("-"),QPushButton("←"),QPushButton("MR")),
+         (QPushButton("0"),QPushButton("."),QPushButton("="),QPushButton("+"),QPushButton("C"),QPushButton("MC"))
         )
-        # Y, X   Equals button has its own style sheet (not in this list)
-        self.non_num_button_locs=((0, 3),(0, 4),(1, 3),(1, 4),(2, 3),(2, 4),(3, 3),(3, 4))
+        # X, Y   Equals button has its own style sheet (not in this list)
+        self.non_num_button_locs=[(x, y) for x in range(3, 5) for y in range(0, 4)]
+        self.mem_button_locs = [(5, y) for y in range(0, 4)]
+
         self.operators = ("+", "-", "*", "/", "^", "√")
         self.setWindowTitle("Calculator")
         self.init_layout()
@@ -34,8 +36,8 @@ class Calculator(QWidget):
         grid = QGridLayout()
 
         # Initialize and connect buttons
-        for y in range(4):
-            for x in range(5):
+        for x in range(6):
+            for y in range(4):
                 button: QPushButton = self.buttons[y][x]
                 grid.addWidget(button, y, x)
                 button.setCursor(QCursor(Qt.PointingHandCursor))
@@ -60,9 +62,17 @@ class Calculator(QWidget):
 
         # Non number buttons
         for x, y in self.non_num_button_locs:
-            self.buttons[x][y].setStyleSheet("""
+            self.buttons[y][x].setStyleSheet("""
                 background-color: #ccc;
                 color: #333;
+            """)
+
+        for x, y in self.mem_button_locs:
+            self.buttons[y][x].setStyleSheet("""
+                background-color: #ccc;
+                color: #333;
+                padding-top: 25px; padding-bottom: 25px;
+                padding-right: 26px; padding-left: 26px;
             """)
 
         # Equals button
@@ -72,10 +82,10 @@ class Calculator(QWidget):
         """)
 
     @staticmethod
-    def get_button_type(button_text: str) -> str: # "num", ".", "op", "=", "<", "C"
+    def get_button_type(button_text: str) -> str:
         if button_text.isdigit():
             return "num"
-        elif button_text in ".=C<√":
+        elif button_text in (".", "=", "←", "C", "√", "M+", "M-", "MR", "MC"):
             return button_text
         return "op"
 
@@ -97,43 +107,50 @@ class Calculator(QWidget):
                 self.on_press_sqrt()
             case "=":
                 self.on_press_eq()
-            case "<":
+            case "M+":
+                self.on_press_m_plus()
+            case "M-":
+                self.on_press_m_minus()
+            case "MR":
+                self.on_press_m_r()
+            case "MC":
+                self.on_press_m_c()
+            case "←":
                 self.on_press_erase()
             case "C":
                 self.on_press_c()
 
     def on_press_num(self, button_text):
-        if self.last_operation_equals:
+        if self.need_to_write_op:
             self.on_press_c()
         self.label.setText(self.label.text() + button_text)
         self.need_to_write_num = False
-        self.last_operation_equals = False
+        self.need_to_write_op = False
 
     def on_press_dot(self):
-        if self.last_operation_equals:
+        if self.need_to_write_op:
             self.on_press_c()
         if not self.current_num_has_dot:
             self.label.setText(self.label.text() + ".")
         self.current_num_has_dot = True
-        self.last_operation_equals = False
+        self.need_to_write_op = False
 
     def on_press_op(self, button_text):
-        label_text = self.label.text()
+        text = self.label.text()
         # Return if not allowed to write operator
         if self.need_to_write_num:
-            cond1 = label_text == ""
+            cond1 = text == ""
             try:
-                cond2 = label_text[-2].isdigit() or label_text[-2] == "."
+                cond2 = text[-2].isdigit() or text[-2] == "."
             except IndexError:
                 cond2 = False
-            # ???
             if button_text != "-" or (not cond1 and not cond2):
                 return
 
         # Don't run equals if a negative sign is being written {
-        cond1 = label_text == "" and button_text == "-"
+        cond1 = text == "" and button_text == "-"
         try:
-            cond2 = label_text[-1] in self.operators and button_text == "-"
+            cond2 = text[-1] in self.operators and button_text == "-"
         except IndexError:
             cond2 = False
         if not cond1 and not cond2:
@@ -142,9 +159,8 @@ class Calculator(QWidget):
             return
         self.label.setText(self.label.text() + button_text)
         self.need_to_write_num = True
-        self.writing_num1 = False
         self.current_num_has_dot = False
-        self.last_operation_equals = False
+        self.need_to_write_op = False
 
     def on_press_sqrt(self):
         if self.need_to_write_num:
@@ -154,47 +170,90 @@ class Calculator(QWidget):
             return
         self.label.setText(self.label.text() + "√")
         self.on_press_eq()
-        self.writing_num1 = False
         self.current_num_has_dot = False
         self.need_to_write_num = False
 
     def on_press_eq(self):
-        label_text = self.label.text()
-        operator = ""
-        new_label_text = label_text
-        # Find operator and index of it but ignore first letter if case it is "-"
-        op_index = 1
-        for char in new_label_text[1:]:
-            if char in self.operators:
-                operator = char
-                break
-            op_index += 1
-        # Split label into num1 and num2
-        nums = [new_label_text[:op_index], new_label_text[op_index + 1:]]
-        if nums[0] == "Error":
+        text = self.label.text()
+        if text == "Error":
             self.on_press_c()
             return
-        if nums[1] == "":
-            nums[1] = "0"
-        try:
-            self.label.setText(self.calc(float(nums[0]), float(nums[1]), operator))
-        except ValueError:
+
+        op_index = self.get_op_index()
+        operator = text[op_index] if op_index < len(text) else ""
+
+        # Split label into num1 and num2
+        num1, num2 = text[:op_index], text[op_index + 1:]
+
+        self.label.setText(self.calc(num1, num2, operator))
+
+        self.need_to_write_op = True
+
+    def on_press_m_plus(self):
+        self.on_press_eq()
+        text = self.label.text()
+        if text == "":
             return
-        self.last_operation_equals = True
-        self.writing_num1 = True
+        self.memory += float(text)
+
+    def on_press_m_minus(self):
+        text = self.label.text()
+        if text == "":
+            return
+        self.memory -= float(text)
+
+    def on_press_m_r(self):
+        text = self.label.text()
+
+        if len(text) > 0 and text[-1] not in self.operators:
+            self.on_press_c()
+
+        if self.memory.is_integer():
+            memory = str(int(self.memory))
+        else:
+            memory = str(self.memory)
+
+        for num in memory:
+            if num.isdigit():
+                self.on_press_num(num)
+            elif num == ".":
+                self.on_press_dot()
+            elif num == "-":
+                if text.endswith("--"):
+                    self.label.setText(text[:-2])
+                self.on_press_op("-")
+            else:
+                self.error_label.setText("Memory Error")
+                self.on_press_c()
+
+        self.need_to_write_op = True
+
+    def on_press_m_c(self):
+        self.memory = 0.0
 
     def on_press_c(self):
         self.label.setText("")
         self.error_label.setText("")
-        self.writing_num1 = True
-        self.last_operation_equals = False
         self.current_num_has_dot = False
         self.need_to_write_num = True
+        self.need_to_write_op = False
 
     def on_press_erase(self):
         text = self.label.text()
         length = len(text)
         if length == 0:
+            return
+
+        if self.need_to_write_op:
+            # Wrote memory, erase removes whole last number
+            op_index = self.get_op_index()
+            if op_index == len(text):
+                self.on_press_c()
+            else:
+                self.label.setText(text[:op_index + 1])
+            self.need_to_write_num = True
+            self.need_to_write_op = False
+            self.current_num_has_dot = False
             return
 
         removed_char = text[-1]
@@ -204,7 +263,22 @@ class Calculator(QWidget):
         if length == 1 or (removed_char.isdigit() and self.label.text()[-1] in self.operators):
             self.need_to_write_num = True
 
+    def get_op_index(self) -> int:
+        # Find operator and index of it but ignore first letter in case it is "-"
+        op_index = 1
+        for char in self.label.text()[1:]:
+            if char in self.operators:
+                return op_index
+            op_index += 1
+        return len(self.label.text())
+
     def calc(self, num1, num2, operator) -> str:
+        if num2 == "" and operator != "√":
+            return num1
+        num1 = float(num1)
+        if num2 != "":
+            num2 = float(num2)
+
         try:
             result = None
             match operator:
@@ -225,13 +299,14 @@ class Calculator(QWidget):
 
         except ZeroDivisionError:
             self.error_label.setText("Dividing by 0")
-            self.last_operation_equals = True
             self.need_to_write_num = True
             return "Error"
         except ValueError:
             self.error_label.setText("Root of negative number")
-            self.last_operation_equals = True
             self.need_to_write_num = True
+            return "Error"
+        except Exception as e:
+            print(e)
             return "Error"
 
         if result.is_integer():
