@@ -197,6 +197,7 @@ class Calculator(QWidget):
         self.memory += float(text)
 
     def on_press_m_minus(self):
+        self.on_press_eq()
         text = self.label.text()
         if text == "":
             return
